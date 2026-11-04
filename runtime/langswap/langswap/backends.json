@@ -1,0 +1,37 @@
+{
+  "asr": {
+    "default": "vad",
+    "options": {
+      "vad":      {"label": "faster-whisper + VAD (local)", "requires_gpu": true,  "requires_api_key": null},
+      "openai":   {"label": "OpenAI Whisper (API)",         "requires_gpu": false, "requires_api_key": "OPENAI_API_KEY"}
+    }
+  },
+  "translation": {
+    "default": "marian",
+    "options": {
+      "llamacpp": {"label": "Gemma-4-E2B GGUF (local)", "requires_gpu": false, "requires_api_key": null},
+      "marian":   {"label": "Marian Opus-MT (local, no llama.cpp)", "requires_gpu": false, "requires_api_key": null},
+      "openai":   {"label": "OpenAI (API)",             "requires_gpu": false, "requires_api_key": "OPENAI_API_KEY"}
+    }
+  },
+  "tts": {
+    "default": "openvoice",
+    "options": {
+      "openvoice":  {"label": "Kokoro FR + OpenVoice (local, voix par narrateur)", "requires_gpu": false, "requires_api_key": null},
+      "kokoro":     {"label": "Kokoro FR (local, voix fixe)", "requires_gpu": false, "requires_api_key": null},
+      "chatterbox": {"label": "Chatterbox (local, clone experimental)", "requires_gpu": true, "requires_api_key": null},
+      "omnivoice":  {"label": "OmniVoice (local)",  "requires_gpu": true,  "requires_api_key": null},
+      "xtts":       {"label": "XTTS-v2 local clone (leger)", "requires_gpu": true, "requires_api_key": null},
+      "edge":       {"label": "Edge TTS FR-CA (online, no clone)", "requires_gpu": false, "requires_api_key": null},
+      "elevenlabs": {"label": "ElevenLabs (API)",   "requires_gpu": false, "requires_api_key": "ELEVEN_API_KEY"}
+    }
+  },
+  "dubbing": {
+    "default": "speedup",
+    "options": {
+      "speedup":       {"label": "Speed up segments"},
+      "stretch_whole": {"label": "Stretch whole track"},
+      "pause_based":   {"label": "Pause-based fill"}
+    }
+  }
+}

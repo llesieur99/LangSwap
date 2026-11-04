@@ -1,0 +1,12 @@
+{
+  "input": {
+    "source_language": "russian",
+    "target_language": "english",
+    "tts_engine": "elevenlabs",
+    "asr_backend": "openai",
+    "translation_backend": "openai",
+    "watermark": false,
+    "s3_video_url": "https://storage.yandexcloud.net/langswap-public/ru_source/1.mp4",
+    "dubbing_algo": "speedup"
+  }
+}

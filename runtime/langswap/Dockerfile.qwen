@@ -1,0 +1,7 @@
+# Optional local French voice clone profile. Build Dockerfile.french first.
+FROM langswap-french-desktop:0.1.0
+RUN uv venv --python 3.11 --system-site-packages /opt/qwen-venv \
+    && uv pip install --python /opt/qwen-venv/bin/python \
+       qwen-tts==0.1.1 torch==2.15.0 torchaudio==2.11.1 torchvision==0.29.2 \
+       soundfile==0.14.0
+COPY qwen_generate.py /app/qwen_generate.py

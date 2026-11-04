@@ -1,0 +1,29 @@
+*.ipynb
+*.pyc
+*.pyo
+*.pyd
+.Python
+.tox
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.git
+.mypy_cache
+.pytest_cache
+.hypothesis
+.gitlab-ci.yml
+.gitlab/**
+tests/
+data/
+data_q/
+data_speedup/
+iwslt26/
+
+# Weights are NOT baked into the image — MODEL_WEIGHTS_DIR is a mounted volume,
+# auto-populated from HuggingFace on first use. Keep the local cache out of the
+# build context.
+models_weights/

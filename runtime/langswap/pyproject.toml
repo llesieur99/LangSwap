@@ -1,0 +1,175 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "langswap"
+dynamic = ["version"]
+description = "Video translation pipeline with speech-to-text, translation, and text-to-speech"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "AGPL-3.0-or-later"}
+# Lightweight core, shared by every install variant (no torch / no GPU stack).
+dependencies = [
+    "boto3",
+    "python-dotenv",
+    "requests",
+    "huggingface_hub>=0.20.0",
+    "attrs",
+    "cattrs",
+    "numpy",
+    "pandas",
+    "tqdm",
+    "soundfile",
+    "pydub",
+]
+
+# uv is the supported installer. The French profile needs a second converter step:
+#   uv pip install -e ".[gpu]"          # full local GPU stack
+#   uv pip install -e ".[french]"       # EN->FR deps; pinned OpenVoice --no-deps below
+#   uv pip install -e ".[api]"          # Mac/CPU, hosted APIs only
+#   uv pip install -e ".[gpu,runpod]"   # GPU image + RunPod worker (Docker)
+# The torch/llama-cpp wheel indexes are wired in [tool.uv] below; no extra index
+# flags are needed. The pinned French OpenVoice step is documented below.
+[project.optional-dependencies]
+# Local EN->FR profile, matching the audited OpenVoice runtime on Python 3.11/3.12.
+# This is independent of the historical OmniVoice/vLLM GPU profile below.
+# OpenVoice's legacy app pins conflict with this converter runtime. Install its
+# code separately, just as in the existing Docker variant (see Dockerfile.french):
+# uv pip install --no-deps "MyShell-OpenVoice @ git+https://github.com/myshell-ai/OpenVoice.git@74a1d147b17a8c3092dd5430504bd83ef6c7eb23"
+french = [
+    "yt-dlp[default]==2026.10.26",
+    "gradio==6.17.3",
+    "torch==2.6.0",
+    "torchaudio==2.6.0",
+    "numpy==1.26.4",
+    "soundfile==0.14.0",
+    "huggingface-hub==1.28.0",
+    "transformers==5.2.0",
+    "tokenizers==0.22.2",
+    "safetensors==0.5.3",
+    "sentencepiece==0.2.2",
+    "faster-whisper==1.2.1",
+    "ctranslate2==4.8.1",
+    "silero-vad==6.2.1",
+    "speechbrain==1.1.0",
+    "scipy==1.17.1",
+    "kokoro==0.9.4",
+    "misaki[en]==0.9.4",
+    "librosa==0.11.0",
+    "wavmark==0.0.3",
+    "inflect==7.5.0",
+    "unidecode==1.4.0",
+    "eng-to-ipa==0.0.2",
+    "pypinyin==0.55.0",
+    "cn2an==0.5.24",
+    "jieba==0.42.1",
+    "langid==1.1.6",
+    "pyrubberband==0.4.0",
+    "demucs==4.1.0",
+]
+
+# Mac / CPU / API-only — hosted APIs (OpenAI ASR + translation, ElevenLabs TTS)
+# instead of the local-model stack. torch resolves from PyPI (CPU/MPS build).
+api = [
+    "torch",
+    "torchaudio",
+    "demucs==4.1.0",
+    "pyrubberband",
+    "silero-vad",
+    "openai",
+    "elevenlabs>=2.36.1",
+    "gradio>=4.0.0",
+]
+
+# Full GPU install with local models (ASR/translation/TTS on-device).
+# torch/torchaudio/torchcodec resolve from the CUDA 13 index (see [tool.uv]).
+gpu = [
+    "torch",
+    "torchaudio",
+    "torchcodec",
+    "transformers==5.9.0",
+    "vllm==0.21.0",
+    "vllm-omni",
+    "qwen-omni-utils",
+    "accelerate",
+    "safetensors>=0.4.3",
+    "tokenizers>=0.22.0",
+    "sentencepiece",
+    "protobuf",
+    "faster-whisper",
+    "llama-cpp-python",
+    "nvidia-cublas-cu12",
+    "nvidia-cuda-runtime-cu12",
+    "demucs==4.1.0",
+    "pyrubberband",
+    "silero-vad",
+    "gradio>=4.0.0",
+    # whisperx is optional: install it separately to enable speaker diarization.
+    # Without it the pipeline runs single-speaker (skip_diarization default).
+]
+
+# RunPod serverless worker (serverless.py). The Docker image installs ".[gpu,runpod]".
+runpod = ["runpod"]
+
+# Modal deployment surface (modal_app.py), driven from a dev machine.
+modal = ["modal", "fastapi"]
+
+dev = [
+    "pytest",
+    "ruff",
+]
+
+# ── uv wheel-index wiring ─────────────────────────────────────────────────────
+# torch/torchaudio/torchcodec for the gpu extra come from the CUDA 13 wheel index.
+# llama-cpp-python comes from its prebuilt CUDA (cu124) wheel so n_gpu_layers=-1
+# actually offloads to the GPU: Gemma-4-E2B + the isochrony loop runs many short
+# generations per line, which is ~600x too slow on the CPU build (the cu124 wheel
+# bundles its own CUDA runtime and coexists with the cu130 torch stack). The api
+# extra's torch resolves from PyPI (CPU/MPS). The conflict declaration lets uv keep
+# the two torch sources straight.
+[tool.uv]
+conflicts = [
+    [{ extra = "api" }, { extra = "gpu" }],
+    [{ extra = "french" }, { extra = "gpu" }],
+    [{ extra = "french" }, { extra = "api" }],
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
+
+[[tool.uv.index]]
+name = "llama-cpp-cu124"
+url = "https://abetlen.github.io/llama-cpp-python/whl/cu124"
+explicit = true
+
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cu130", extra = "gpu" },
+    { index = "pytorch-cu124", extra = "french" },
+]
+torchaudio = [
+    { index = "pytorch-cu130", extra = "gpu" },
+    { index = "pytorch-cu124", extra = "french" },
+]
+torchcodec = [{ index = "pytorch-cu130", extra = "gpu" }]
+llama-cpp-python = { index = "llama-cpp-cu124" }
+
+[tool.setuptools.dynamic]
+version = {file = "langswap/__VERSION__"}
+
+[tool.setuptools.packages.find]
+include = ["langswap*"]
+exclude = ["tests*", "scripts*", "notebooks*"]
+
+[tool.setuptools.package-data]
+"langswap" = ["backends.json"]
+"langswap.utils.ml_processing" = ["language_codes.json"]
+"langswap.ml.text_to_speech_service" = ["configs/*.yaml"]

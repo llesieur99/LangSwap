@@ -1,0 +1,52 @@
+FROM ghcr.io/denoland/deno:bin-2.9.7@sha256:6e4bc7aed62e400bb3f1bbea561da91e7abc02e1dbc5c3db38af78c3624f2760 AS deno
+
+# Independent local EN->FR runtime. Build recipe; no inherited OmniVoice,
+# vLLM, Chatterbox or XTTS image is needed. Weights are downloaded at first use
+# into the mounted models directory and are never baked into this image.
+# docker build -f Dockerfile.french -t langswap-french .
+FROM pytorch/pytorch:2.6.0-cuda12.4-cudnn9-runtime@sha256:77f17f843507062875ce8be2a6f76aa6aa3df7f9ef1e31d9d7432f4b0f563dee
+COPY --from=deno /deno /usr/local/bin/deno
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    UV_HTTP_TIMEOUT=180
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        git ffmpeg libsndfile1 rubberband-cli espeak-ng build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Match the installer used for the dependency-resolution audit. Keep the
+# application environment separate from the upstream image's conda packages.
+RUN python -m pip install --no-cache-dir uv==0.12.5 \
+    && python -c "import sys; assert (3, 11) <= sys.version_info[:2] < (3, 13)" \
+    && uv venv /opt/langswap --python python
+
+ENV PATH=/opt/langswap/bin:${PATH} \
+    UV_PYTHON=/opt/langswap/bin/python
+
+WORKDIR /app
+COPY pyproject.toml README.md LICENSE ./
+COPY langswap/ ./langswap/
+COPY main.py ./
+COPY gradio_demo.py ./
+COPY desktop_worker.py ./
+RUN uv pip install --python /opt/langswap/bin/python -e ".[french]" \
+    && uv pip install --python /opt/langswap/bin/python --no-deps \
+       "MyShell-OpenVoice @ git+https://github.com/myshell-ai/OpenVoice.git@74a1d147b17a8c3092dd5430504bd83ef6c7eb23"
+
+# CTranslate2 links CUDA 12/cuDNN 9. Find the matching Torch wheel libraries
+# without overwriting the upstream image's CUDA libraries.
+RUN /opt/langswap/bin/python -c "import site; from pathlib import Path; root=Path(site.getsitepackages()[0]); paths=[root/'nvidia/cublas/lib',root/'nvidia/cudnn/lib',root/'nvidia/cuda_runtime/lib']; Path('/etc/ld.so.conf.d/langswap-cuda.conf').write_text(''.join(str(p)+'\n' for p in paths))" \
+    && ldconfig
+
+ENV MODEL_WEIGHTS_DIR=/app/models_weights \
+    LANGSWAP_DATA_DIR=/app/data \
+    LANGSWAP_OUTPUT_DIR=/app/output \
+    HF_HOME=/app/models_weights \
+    HUGGINGFACE_HUB_CACHE=/app/models_weights
+
+EXPOSE 7860
+
+# Pass local CLI arguments explicitly; no cloud account or hosted API key.
+ENTRYPOINT ["python", "-u", "main.py"]
+CMD ["--help"]

@@ -1,0 +1,42 @@
+# Local processing, models, media and generated releases
+work/
+data/
+output/
+models_weights/
+runtime/langswap/models_weights/
+runtime/langswap/data/
+runtime/langswap/output/
+*.mp4
+*.mkv
+*.webm
+*.mov
+*.wav
+*.m4a
+*.srt
+*.zip
+*.exe
+
+# Credentials and local configuration
+.env
+.env.*
+*.key
+*.pem
+*.pfx
+*.p12
+*.token
+*credentials*
+*cookies*
+
+# Python, .NET and editor output
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.venv/
+build/
+dist/
+bin/
+obj/
+.vs/
+.vscode/
