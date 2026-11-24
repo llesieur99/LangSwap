@@ -52,3 +52,7 @@ This code includes modifications dated 2026-11-04 and is distributed under
 AGPL-3.0-or-later. See [NOTICE.md](NOTICE.md) and [LICENSE](LICENSE). External
 model weights and dependencies have their own licences; they are downloaded
 separately and are not included in this repository.
+
+## Verification and handoff
+
+[Verification scope and limits as of 2026-11-24](docs/ETAT-REPRISE-2026-11-24.md).
